@@ -4,6 +4,8 @@ const axios = require("axios");
 const config = require("./config.json");
 const delay = require("delay");
 
+DEBUG = process.env.DEBUG || false;
+console.log("Debug: " + DEBUG);
 const port = new SerialPort(config.radio.device, {
   baudRate: config.radio.baudrate,
 });
@@ -71,7 +73,7 @@ parser.on("data", function (data) {
   } else if (data.substr(0, 7) === "+CTXG: ") {
     transmissionStart(data.substr(7));
   } else if (data.substr(0, 7) === "+CTCC: ") {
-    console.log("Call connected: " + data.substr(7));
+    DEBUG && console.log("Call connected: " + data.substr(7));
   } else if (data.substr(0, 8) === "+CDTXC: ") {
     transmissionEnd(data.substr(8));
   } else if (data.substr(0, 7) === "+CTCR: ") {
@@ -80,7 +82,8 @@ parser.on("data", function (data) {
     if (data.substr(7).trimEnd() == "MT PIN-UNLOCKED") {
       console.log("PIN unlocked");
     } else {
-      console.log("PIN locked")(async () => {
+      console.log("PIN locked");
+      (async () => {
         port.write("AT+CPIN=" + config.radio.pinCode + "\r\n", function (err) {
           if (err) {
             console.log("Error on write: " + err);
@@ -93,7 +96,7 @@ parser.on("data", function (data) {
   } else if (data.substr(0, 1) === "\n") {
   } else if (data.substr(0, 1) === "\r") {
   } else {
-    console.log("Unhandled data:", data);
+    DEBUG && console.log("Unhandled data:", data);
   }
 });
 
@@ -103,7 +106,8 @@ function callSetup(data) {
   let sender = params[4];
   let talkgroup = params[11];
   activeTalkgroup = talkgroup;
-  console.log("Incoming call from " + sender + " in talkgroup " + talkgroup);
+  DEBUG &&
+    console.log("Incoming call from " + sender + " in talkgroup " + talkgroup);
 
   const requestData = {
     issi: "0000000",
@@ -130,7 +134,7 @@ function callSetup(data) {
 function callEnd(data) {
   let params = data.split(",");
 
-  console.log("Call ended in talkgroup  " + activeTalkgroup);
+  DEBUG && console.log("Call ended in talkgroup  " + activeTalkgroup);
 
   const requestData = {
     issi: "0000000",
@@ -163,7 +167,7 @@ function transmissionStart(data) {
 
   let sender = params[5].trimEnd();
   activeSender = sender;
-  console.log("Transmission grant: " + sender);
+  DEBUG && console.log("Transmission grant: " + sender);
 
   const requestData = {
     issi: activeSender,
@@ -189,13 +193,15 @@ function transmissionStart(data) {
 
 function transmissionEnd(data) {
   // 3,0
-  console.log("Start: " + timestampTxStart);
   elapsedTime = Date.now() - timestampTxStart;
 
   let params = data.split(",");
 
-  console.log("Transmission ended: " + activeSender);
-  console.log("Elapsed time: " + (elapsedTime / 1000).toFixed(1) + " sekunder");
+  DEBUG && console.log("Transmission ended: " + activeSender);
+  DEBUG &&
+    console.log(
+      "Elapsed time: " + (elapsedTime / 1000).toFixed(1) + " sekunder"
+    );
   const requestData = {
     issi: activeSender,
     gssi: activeTalkgroup,
@@ -214,7 +220,7 @@ function transmissionEnd(data) {
     },
   })
     .then((res) => {
-      console.log(`Status: ${res.status}`);
+      DEBUG && console.log(`Status: ${res.status}`);
     })
     .catch((err) => {
       console.log("Error sending data " + err);
@@ -234,9 +240,9 @@ function sendStatus() {
     event: "RADIOSTATUS",
   };
 
-  console.log("-- Sending status --");
-  console.log(requestData);
-  console.log("\n");
+  DEBUG && console.log("-- Sending status --");
+  DEBUG && console.log(requestData);
+  DEBUG && console.log("\n");
 
   axios({
     method: "post",
