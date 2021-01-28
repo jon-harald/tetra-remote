@@ -19,6 +19,7 @@ let activeSender = null;
 let timestampTxStart = null;
 
 // Radio
+let radioManufacturer = null;
 let radioIssi = null;
 let radioBatteryLevel = null;
 let radioRssi = null;
@@ -55,10 +56,13 @@ parser.on("error", function (err) {
 });
 
 parser.on("data", function (data) {
+  DEBUG && console.log(data);
   if (data.substr(0, 6) === "+CSQ: ") {
     radioRssi = data.substr(6).split(",")[0].trimEnd();
   } else if (data.substr(0, 6) === "+CBC: ") {
     radioBatteryLevel = data.substr(6).split(",")[1].trimEnd();
+  } else if (data.substr(0, 6) === "+GMI: ") {
+    radioManufacturer = data.substr(6).trimEnd();
   } else if (data.substr(0, 7) === "+CLVL: ") {
     radioVolume = data.substr(7).trimEnd();
   } else if (data.substr(0, 8) === "+CNUMF: ") {
@@ -161,16 +165,22 @@ function callEnd(data) {
 
 function transmissionStart(data) {
   // 2,3,0,0,0,6101629
+  // Own radio transmitting lacks ISSI
   timestampTxStart = Date.now();
   let params = data.split(",");
 
-  let sender = params[5].trimEnd();
+  let sender;
+  if (typeof params[5] !== "undefined") {
+    sender = params[5].trimEnd();
+  } else {
+    sender = radioIssi;
+  }
   activeSender = sender;
   DEBUG && console.log("Transmission grant: " + sender);
 
   const requestData = {
     issi: activeSender,
-    gssi: activeTalkgroup,
+    gssi: activeTalkgroup ? activeTalkgroup : radioGssi,
     event: "TXSTART",
     timestamp: Math.floor(Date.now() / 1000),
   };
@@ -203,7 +213,7 @@ function transmissionEnd(data) {
     );
   const requestData = {
     issi: activeSender,
-    gssi: activeTalkgroup,
+    gssi: activeTalkgroup ? activeTalkgroup : radioGssi,
     event: "TXEND",
     timestamp: Math.floor(Date.now() / 1000),
     txtime: (elapsedTime / 1000).toFixed(1),
@@ -234,6 +244,7 @@ function sendStatus() {
     gssi: radioGssi,
     rssi: radioRssi,
     battery: radioBatteryLevel,
+    type: radioManufacturer,
     timestamp: Math.floor(Date.now() / 1000),
     volume: radioVolume,
     event: "RADIOSTATUS",
