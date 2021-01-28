@@ -57,7 +57,6 @@ parser.on("error", function (err) {
 parser.on("data", function (data) {
   if (data.substr(0, 6) === "+CSQ: ") {
     radioRssi = data.substr(6).split(",")[0].trimEnd();
-    console.log("Battery " + data);
   } else if (data.substr(0, 6) === "+CBC: ") {
     radioBatteryLevel = data.substr(6).split(",")[1].trimEnd();
   } else if (data.substr(0, 7) === "+CLVL: ") {
@@ -288,8 +287,6 @@ async function getRadioStatus() {
   port.write("AT+CTGS?\r\n", function (err) {
     if (err) {
       console.log("Error on write: " + err);
-    } else {
-      console.log("CTGS OK");
     }
   });
   await delay(serialCommandDelay);

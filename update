@@ -1,0 +1,5 @@
+#bin/bash
+sudo systemctl stop tetra-remote
+git pull
+npm update
+sudo systemctl start tetra-remote
