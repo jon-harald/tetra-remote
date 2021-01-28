@@ -1,0 +1,12 @@
+{ 
+  "server": {
+    "url": "<url>",
+    "token": "<token>"
+  },
+  "radio": {
+    "device": "/dev/<serialdevice>",
+    "baudrate": 38400,
+    "pinCode": "<pincode>",
+    "statusInterval": 25
+  }
+}
